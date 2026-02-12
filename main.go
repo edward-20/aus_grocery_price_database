@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
 	"github.com/tjhowse/aus_grocery_price_database/internal/coles"
 	"github.com/tjhowse/aus_grocery_price_database/internal/databases/influxdb"
 	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
@@ -49,6 +51,12 @@ type timeseriesDB interface {
 }
 
 func main() {
+	// loading environment variables from '.env'
+	err := godotenv.Overload()
+	if err != nil {
+		log.Fatalf("unable to load .env file: %e", err)
+		return
+	}
 
 	// Read in the environment variables
 	cfg := config{}
