@@ -1,47 +1,36 @@
+//go:build integration
+// +build integration
+
 package influxdb
 
 import (
 	"testing"
 	"time"
 
-	"github.com/influxdata/influxdb-client-go/v2/api"
-	"github.com/influxdata/influxdb-client-go/v2/api/write"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
-type MockInfluxdbWriteAPI struct {
-	writtenPoints []*write.Point
-}
-
-func (m *MockInfluxdbWriteAPI) WritePoint(p *write.Point) {
-	m.writtenPoints = append(m.writtenPoints, p)
-}
-
-func (m *MockInfluxdbWriteAPI) WriteRecord(line string) {}
-
-func (m *MockInfluxdbWriteAPI) Flush() {}
-
-func (m *MockInfluxdbWriteAPI) Errors() <-chan error {
-	return make(chan error)
-}
-
-// func (m *MockInfluxdbWriteAPI) Init() {
-// 	m.writtenPoints = []*write.Point{}
-// }
-
-func (m *MockInfluxdbWriteAPI) SetWriteFailedCallback(cb api.WriteFailedCallback) {}
-
-func InitMockInfluxDB() (*InfluxDB, *MockInfluxdbWriteAPI, *MockInfluxdbWriteAPI) {
-	i := InfluxDB{}
-	groceryMock := &MockInfluxdbWriteAPI{}
-	i.groceryWriteAPI = groceryMock
-	systemMock := &MockInfluxdbWriteAPI{}
-	i.systemWriteAPI = systemMock
-
-	return &i, groceryMock, systemMock
-}
-
 func TestWriteProductDatapoint(t *testing.T) {
+	i := InfluxDB{}
+	url, token, database := "", "", ""
+	err := i.Init(url, token, database) // have to make an influxdb3 instance for testing
+	/*
+		install influxdb3 needs to be done manually
+		./influxdb3 serve
+			--node-id=node0 \
+			--cluster-id=cluster0 \
+			--object-store=file \
+			--data-dir=./data
+		install the cli manually
+		use the cli to healthcheck
+
+		init a database (perhaps needing to tear down an existing database from previous test run)
+	*/
+
+	if err != nil {
+		t.FailNow()
+	}
+
 	desiredTags := map[string]string{
 		"name":       "Test Product",
 		"store":      "Test Store",
