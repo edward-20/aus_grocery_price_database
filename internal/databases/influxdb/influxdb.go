@@ -4,22 +4,26 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/influxdata/influxdb-client-go/v2/api"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
 type InfluxDB struct {
-	db              influxdb2.Client
-	groceryWriteAPI api.WriteAPI
-	systemWriteAPI  api.WriteAPI
+	db influxdb3.Client
 }
 
-func (i *InfluxDB) Init(url, token, org, bucket string) {
-	slog.Info("Initialising InfluxDB", "url", url, "org", org, "bucket", bucket)
-	i.db = influxdb2.NewClient(url, token)
-	i.groceryWriteAPI = i.db.WriteAPI(org, bucket)
-	i.systemWriteAPI = i.db.WriteAPI(org, "system")
+func (i *InfluxDB) Init(url, token, database string) {
+	slog.Info("Initialising InfluxDB", "url", url, "database", database)
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	if err != nil {
+		// handle error
+	}
+	i.db = *client // am i shooting myself in the foot here? should hte InfluxDB struct have &influxdb3.Client
 }
 
 func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
