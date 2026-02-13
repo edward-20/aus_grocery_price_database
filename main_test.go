@@ -10,7 +10,7 @@ import (
 )
 
 type MockInfluxDB struct {
-	url, token, org, bucket          string
+	url, token, database             string
 	writtenProductDataPoints         []shared.ProductInfo
 	writtenArbitrarySystemDatapoints []struct {
 		field string
@@ -20,12 +20,12 @@ type MockInfluxDB struct {
 	closed                  bool
 }
 
-func (i *MockInfluxDB) Init(url, token, org, bucket string) {
+func (i *MockInfluxDB) Init(url, token, database string) error {
 	i.url = url
 	i.token = token
-	i.org = org
-	i.bucket = bucket
+	i.database = database
 	i.closed = false
+	return nil
 }
 
 func (i *MockInfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
@@ -117,8 +117,7 @@ func TestRun(t *testing.T) {
 
 		InfluxDBURL:                 "a",
 		InfluxDBToken:               "b",
-		InfluxDBOrg:                 "c",
-		InfluxDBBucket:              "d",
+		InfluxDBDatabase:            "c",
 		InfluxUpdateIntervalSeconds: 1,
 		LocalWoolworthsDBPath:       "e",
 		MaxProductAgeMinutes:        1,
@@ -127,7 +126,7 @@ func TestRun(t *testing.T) {
 	}
 	mockGroceryStore.Init("", "", 1*time.Minute)
 	mockGroceryStore2.Init("", "", 1*time.Minute)
-	mockInfluxDB.Init("", "", "", "")
+	mockInfluxDB.Init("", "", "")
 
 	running := true
 
