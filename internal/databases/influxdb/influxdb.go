@@ -10,7 +10,7 @@ import (
 )
 
 type InfluxDB struct {
-	db influxdb3.Client
+	db *influxdb3.Client
 }
 
 func (i *InfluxDB) Init(url, token, database string) {
@@ -23,7 +23,7 @@ func (i *InfluxDB) Init(url, token, database string) {
 	if err != nil {
 		// handle error
 	}
-	i.db = *client // am i shooting myself in the foot here? should hte InfluxDB struct have &influxdb3.Client
+	i.db = client
 }
 
 func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
