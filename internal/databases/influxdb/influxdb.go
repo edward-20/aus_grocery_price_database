@@ -25,6 +25,7 @@ func (i *InfluxDB) Init(url, token, database string) error {
 		return err
 	}
 	i.db = client
+	return nil
 }
 
 func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
