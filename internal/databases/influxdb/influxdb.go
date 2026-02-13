@@ -13,7 +13,7 @@ type InfluxDB struct {
 	db *influxdb3.Client
 }
 
-func (i *InfluxDB) Init(url, token, database string) {
+func (i *InfluxDB) Init(url, token, database string) error {
 	slog.Info("Initialising InfluxDB", "url", url, "database", database)
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
@@ -22,6 +22,7 @@ func (i *InfluxDB) Init(url, token, database string) {
 	})
 	if err != nil {
 		// handle error
+		return err
 	}
 	i.db = client
 }
