@@ -22,8 +22,7 @@ const SYSTEM_STATUS_UPDATE_INTERVAL_SECONDS = 60
 type config struct {
 	InfluxDBURL                 string `env:"INFLUXDB_URL"`
 	InfluxDBToken               string `env:"INFLUXDB_TOKEN"`
-	InfluxDBOrg                 string `env:"INFLUXDB_ORG" envDefault:"groceries"`
-	InfluxDBBucket              string `env:"INFLUXDB_BUCKET" envDefault:"groceries"`
+	InfluxDBDatabase            string `env:"INFLUXDB_DATABASE" envDefault:"groceries"`
 	InfluxUpdateIntervalSeconds int    `env:"INFLUXDB_UPDATE_RATE_SECONDS" envDefault:"10"`
 	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"woolworths.db3"`
 	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"coles.db3"`
@@ -76,7 +75,7 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBOrg, cfg.InfluxDBBucket)
+	tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase)
 	defer tsDB.Close()
 
 	w := woolworths.Woolworths{}
