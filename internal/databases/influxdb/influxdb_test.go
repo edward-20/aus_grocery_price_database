@@ -4,16 +4,20 @@
 package influxdb
 
 import (
+	"os"
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
 func TestWriteProductDatapoint(t *testing.T) {
 	i := InfluxDB{}
-	url, token, database := "", "", ""
-	err := i.Init(url, token, database) // have to make an influxdb3 instance for testing
+	// read in .env.test
+	godotenv.Load(".env.test")
+	influxDBUrl, influxDBToken, influxDBDatabase := os.Getenv("URL"), os.Getenv("TOKEN"), os.Getenv("DATABASE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
 	/*
 		install influxdb3 needs to be done manually
 		./influxdb3 serve
@@ -37,7 +41,7 @@ func TestWriteProductDatapoint(t *testing.T) {
 		"location":   "Test Location",
 		"department": "Test Department",
 	}
-	i, gMock, _ := InitMockInfluxDB()
+
 	i.WriteProductDatapoint(shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
