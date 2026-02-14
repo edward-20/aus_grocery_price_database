@@ -4,10 +4,13 @@
 package influxdb
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
@@ -42,6 +45,9 @@ func TestWriteProductDatapoint(t *testing.T) {
 		"department": "Test Department",
 	}
 
+	// get the current time
+	preWriteTime := time.Now()
+
 	i.WriteProductDatapoint(shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
@@ -72,6 +78,15 @@ func TestWriteProductDatapoint(t *testing.T) {
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
 	})
+
+	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
+	ctx := context.Background()
+	params := influxdb3.QueryParameters{}
+	query := fmt.Sprint("SELECT * FROM %s WHERE time >= %s", table, preWriteTime)
+	iterator, err := i.db.QueryWithParameters(ctx, query, params) // not using public interface of InfluxDB, is this good practice?
+	for iterator.Next() {
+		// compare the values to what we wrote and ensure that only 3 exist
+	}
 
 	if want, got := 3, len(gMock.writtenPoints); want != got {
 		t.Errorf("want %d, got %d", want, got)
