@@ -11,7 +11,10 @@ require (
 	golang.org/x/time v0.12.0
 )
 
+require github.com/apache/arrow/go/v15 v15.0.2 // indirect
+
 require (
+	github.com/InfluxCommunity/influxdb3-go v0.14.0
 	github.com/InfluxCommunity/influxdb3-go/v2 v2.12.0 // indirect
 	github.com/apache/arrow-go/v18 v18.5.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect

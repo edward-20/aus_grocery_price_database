@@ -37,13 +37,29 @@ func TestWriteProductDatapoint(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-
 	desiredTags := map[string]string{
 		"name":       "Test Product",
 		"store":      "Test Store",
 		"location":   "Test Location",
 		"department": "Test Department",
 	}
+
+	// create a new measurement(table) [that needs to be taken at the end of the test]
+	// fooTags := map[string]string{
+	// 	"name":       "Test Product",
+	// 	"store":      "Test Store",
+	// 	"location":   "Test Location",
+	// 	"department": "Test Department",
+	// }
+	// fooMeasurement := map[string]interface{}{
+	// 	"price": 5,
+	// }
+	// influxdb3.NewPoint(
+	// 	"test",
+	// 	fooTags,
+	// 	fooMeasurement,
+	// 	time.Now(),
+	// )
 
 	// get the current time
 	preWriteTime := time.Now()
