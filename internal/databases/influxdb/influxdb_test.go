@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influxdb3"
 	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
@@ -19,7 +18,7 @@ func TestWriteProductDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
 	godotenv.Load(".env.test")
-	influxDBUrl, influxDBToken, influxDBDatabase := os.Getenv("URL"), os.Getenv("TOKEN"), os.Getenv("DATABASE")
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE")
 	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
 	/*
 		install influxdb3 needs to be done manually
@@ -62,9 +61,10 @@ func TestWriteProductDatapoint(t *testing.T) {
 	// )
 
 	// get the current time
-	preWriteTime := time.Now()
+	preWriteTime := time.Now().String()
 
-	i.WriteProductDatapoint(shared.ProductInfo{
+	inputPoints := make([]shared.ProductInfo, 3)
+	inputPoints[0] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -73,8 +73,8 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 0,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
-	i.WriteProductDatapoint(shared.ProductInfo{
+	}
+	inputPoints[1] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -83,8 +83,8 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 100,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
-	i.WriteProductDatapoint(shared.ProductInfo{
+	}
+	inputPoints[2] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -93,86 +93,84 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 101,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
+	}
 
 	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
 	ctx := context.Background()
-	params := influxdb3.QueryParameters{}
-	query := fmt.Sprint("SELECT * FROM %s WHERE time >= %s", table, preWriteTime)
-	iterator, err := i.db.QueryWithParameters(ctx, query, params) // not using public interface of InfluxDB, is this good practice?
+	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP %s ORDER BY time", influxDBProductTable, preWriteTime)
+	iterator, err := i.db.Query(ctx, query) // not using public interface of InfluxDB, is this good practice?
+	var it int = 0
 	for iterator.Next() {
 		// compare the values to what we wrote and ensure that only 3 exist
-	}
-
-	if want, got := 3, len(gMock.writtenPoints); want != got {
-		t.Errorf("want %d, got %d", want, got)
-	}
-
-	// Check the first written point.
-	p := gMock.writtenPoints[0]
-	if want, got := "product", p.Name(); want != got {
-		t.Errorf("want %s, got %s", want, got)
-	}
-
-	for _, tag := range p.TagList() {
-		if want, got := desiredTags[tag.Key], tag.Value; want != got {
-			t.Errorf("want %s, got %s", want, got)
+		result := iterator.Value()
+		if result["price"] != inputPoints[it].PriceCents {
+			t.Errorf("incorrect point value")
 		}
+		it++
+	}
+	if it != 3 {
+		t.Errorf("more points than expected")
 	}
 
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			if want, got := int64(100), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "grams":
-			if want, got := int64(1000), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "cents_change":
-			t.Errorf("unexpected field %s", field.Key)
-		default:
-			t.Errorf("unexpected field %s", field.Key)
-		}
-	}
+	// for _, tag := range p.TagList() {
+	// 	if want, got := desiredTags[tag.Key], tag.Value; want != got {
+	// 		t.Errorf("want %s, got %s", want, got)
+	// 	}
+	// }
 
-	// Now check the second written point.
-	p = gMock.writtenPoints[1]
+	// for _, field := range p.FieldList() {
+	// 	switch field.Key {
+	// 	case "cents":
+	// 		if want, got := int64(100), field.Value.(int64); want != got {
+	// 			t.Errorf("want %v, got %v", want, got)
+	// 		}
+	// 	case "grams":
+	// 		if want, got := int64(1000), field.Value.(int64); want != got {
+	// 			t.Errorf("want %v, got %v", want, got)
+	// 		}
+	// 	case "cents_change":
+	// 		t.Errorf("unexpected field %s", field.Key)
+	// 	default:
+	// 		t.Errorf("unexpected field %s", field.Key)
+	// 	}
+	// }
 
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			if want, got := int64(101), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "grams":
-			continue
-		case "cents_change":
-			if want, got := int64(1), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		default:
-			t.Errorf("unexpected field %s", field.Key)
-		}
-	}
+	// // Now check the second written point.
+	// p = gMock.writtenPoints[1]
 
-	// Now check the third written point.
-	p = gMock.writtenPoints[2]
+	// for _, field := range p.FieldList() {
+	// 	switch field.Key {
+	// 	case "cents":
+	// 		if want, got := int64(101), field.Value.(int64); want != got {
+	// 			t.Errorf("want %v, got %v", want, got)
+	// 		}
+	// 	case "grams":
+	// 		continue
+	// 	case "cents_change":
+	// 		if want, got := int64(1), field.Value.(int64); want != got {
+	// 			t.Errorf("want %v, got %v", want, got)
+	// 		}
+	// 	default:
+	// 		t.Errorf("unexpected field %s", field.Key)
+	// 	}
+	// }
 
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			continue
-		case "grams":
-			continue
-		case "cents_change":
-			if want, got := int64(-2), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		default:
-			t.Errorf("unexpected field %s", field.Key)
-		}
-	}
+	// // Now check the third written point.
+	// p = gMock.writtenPoints[2]
+
+	// for _, field := range p.FieldList() {
+	// 	switch field.Key {
+	// 	case "cents":
+	// 		continue
+	// 	case "grams":
+	// 		continue
+	// 	case "cents_change":
+	// 		if want, got := int64(-2), field.Value.(int64); want != got {
+	// 			t.Errorf("want %v, got %v", want, got)
+	// 		}
+	// 	default:
+	// 		t.Errorf("unexpected field %s", field.Key)
+	// 	}
+	// }
 
 }

@@ -23,6 +23,8 @@ type config struct {
 	InfluxDBURL                 string `env:"INFLUXDB_URL"`
 	InfluxDBToken               string `env:"INFLUXDB_TOKEN"`
 	InfluxDBDatabase            string `env:"INFLUXDB_DATABASE" envDefault:"groceries"`
+	InfluxDBProductTable        string `env:"INFLUXDB_PRODUCT_TABLE" envDefault:"product"`
+	InfluxDBSystemTable         string `env:"INFLUXDB_SYSTEM_TABLE" envDefault:"system"`
 	InfluxUpdateIntervalSeconds int    `env:"INFLUXDB_UPDATE_RATE_SECONDS" envDefault:"10"`
 	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"woolworths.db3"`
 	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"coles.db3"`
