@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,10 +15,32 @@ import (
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
+func dir(envFile string) string {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		goModPath := filepath.Join(currentDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			break
+		}
+
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			panic(fmt.Errorf("go.mod not found"))
+		}
+		currentDir = parent
+	}
+
+	return filepath.Join(currentDir, envFile)
+}
+
 func TestWriteProductDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
-	godotenv.Load(".env.test")
+	godotenv.Load(dir(".env.test"))
 	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE")
 	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
 	/*
@@ -34,6 +57,7 @@ func TestWriteProductDatapoint(t *testing.T) {
 	*/
 
 	if err != nil {
+		t.Errorf("Could not init database client: %s", err.Error())
 		t.FailNow()
 	}
 	desiredTags := map[string]string{
@@ -109,7 +133,7 @@ func TestWriteProductDatapoint(t *testing.T) {
 		it++
 	}
 	if it != 3 {
-		t.Errorf("more points than expected")
+		t.FailNow()
 	}
 
 	// for _, tag := range p.TagList() {
