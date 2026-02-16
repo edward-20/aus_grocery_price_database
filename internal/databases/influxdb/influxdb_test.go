@@ -121,8 +121,12 @@ func TestWriteProductDatapoint(t *testing.T) {
 
 	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
 	ctx := context.Background()
-	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP %s ORDER BY time", influxDBProductTable, preWriteTime)
+	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP '%s' ORDER BY time;", influxDBProductTable, preWriteTime)
 	iterator, err := i.db.Query(ctx, query) // not using public interface of InfluxDB, is this good practice?
+	if err != nil {
+		t.Errorf("couldn't get query: %s", err.Error())
+		t.FailNow()
+	}
 	var it int = 0
 	for iterator.Next() {
 		// compare the values to what we wrote and ensure that only 3 exist
