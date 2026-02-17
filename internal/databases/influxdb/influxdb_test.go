@@ -91,6 +91,7 @@ func TestWriteProductDatapoint(t *testing.T) {
 	// get the current time
 	preWriteTime := time.Now().String()
 
+	// make the input product points
 	inputPoints := make([]shared.ProductInfo, 3)
 	inputPoints[0] = shared.ProductInfo{
 		Name:               desiredTags["name"],
@@ -121,6 +122,10 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 101,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
+	}
+	// write the input product points
+	for _, v := range inputPoints {
+		i.WriteProductDatapoint(v)
 	}
 
 	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
