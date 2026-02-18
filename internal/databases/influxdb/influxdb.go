@@ -1,9 +1,13 @@
 package influxdb
 
 import (
+	"context"
 	"log/slog"
+	"os"
+	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
+	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
@@ -45,6 +49,29 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 				"department"
 			timestamp
 	*/
+	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
+
+	table := os.Getenv("INFLUXDB_DATABASE")
+	tags := map[string]string{
+		"id":         info.ID,
+		"name":       info.Name,
+		"store":      info.Store,
+		"location":   info.Location,
+		"department": info.Department,
+	}
+	fields := map[string]any{
+		"cents": info.PriceCents,
+		"grams": info.WeightGrams,
+	}
+
+	if info.PriceCents != info.PreviousPriceCents {
+		fields["cents_change"] = info.PriceCents - info.PreviousPriceCents
+	}
+
+	point := influxdb3.NewPoint(table, tags, fields, time.Now())
+	points := make([]*influxdb3.Point, 1, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
 }
 
 func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}) {
