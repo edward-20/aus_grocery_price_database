@@ -84,6 +84,16 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 				"service": shared.SYSTEM_SERVICE_NAME
 			timestamp
 	*/
+	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
+
+	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	fields := map[string]any{
+		field: value,
+	}
+	point := influxdb3.NewPoint(table, nil, fields, time.Now())
+	points := make([]*influxdb3.Point, 1, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
 
 }
 
