@@ -64,4 +64,7 @@ A significant frontend challenge is product differentiation. The data scraped fr
 Woolworths provides a barcode number, coles does not. It would be great for a user to be able to scan a barcode on their phone and pull up the price history of that item.
 
 ## Environment Variables
-With version 0.54+, you can use .env files to store environment variables. Use `.env.dev` for develpment and `.env.test` for testing (because integration tests).
+With version 0.54+, you can use .env files to store environment variables. Use `.env.dev` for develpment and `.env.test` for testing (because integration tests). Use `.env.prod` for production.
+
+In order to determine which environment variable config to use, set a higher
+level `GO_ENV` inside your system. It will default to `.env.dev`.

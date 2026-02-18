@@ -17,7 +17,15 @@ type InfluxDB struct {
 	systemTable  string
 }
 
-// big question, do they all write to the same table?
+func envLoading() {
+	env := os.Getenv("GO_ENV")
+	if "" == env {
+		env = "dev"
+	}
+
+	godotenv.Load(".env." + env)
+	godotenv.Load() // The Original .env
+}
 
 func (i *InfluxDB) Init(url, token, database string) error {
 	slog.Info("Initialising InfluxDB", "url", url, "database", database)
@@ -49,9 +57,9 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 				"department"
 			timestamp
 	*/
-	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
-
+	envLoading()
 	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
+
 	tags := map[string]string{
 		"id":         info.ID,
 		"name":       info.Name,
@@ -83,9 +91,9 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 				"service": shared.SYSTEM_SERVICE_NAME
 			timestamp
 	*/
-	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
-
+	envLoading()
 	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+
 	fields := map[string]any{
 		field: value,
 	}
@@ -93,7 +101,6 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 	points := make([]*influxdb3.Point, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
-
 }
 
 func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
@@ -108,9 +115,9 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 				"cents_change"
 			timestamp
 	*/
-	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
-
+	envLoading()
 	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+
 	fields := map[string]any{
 		shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
 		shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
@@ -134,5 +141,5 @@ func (i *InfluxDB) WriteWorker(input <-chan shared.ProductInfo) {
 }
 
 func (i *InfluxDB) Close() {
-	i.db.Close() // no error handling for this
+	i.db.Close() // no error handling for this???
 }
