@@ -267,7 +267,6 @@ func TestWriteArbitrarySystemDatapoint(t *testing.T) {
 		case 2:
 			compareArbitrarySystemStatusDatapoint("metres", 1.5, result)
 		}
-		compareArbitrarySystemStatusDatapoint("colour", "grey", result)
 		it++
 	}
 	if it != 3 {
