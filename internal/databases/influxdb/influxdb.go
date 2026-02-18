@@ -8,7 +8,6 @@ import (
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/joho/godotenv"
-	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
@@ -70,7 +69,7 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 	}
 
 	point := influxdb3.NewPoint(table, tags, fields, time.Now())
-	points := make([]*influxdb3.Point, 1, 1)
+	points := make([]*influxdb3.Point, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
 }
@@ -91,7 +90,7 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 		field: value,
 	}
 	point := influxdb3.NewPoint(table, nil, fields, time.Now())
-	points := make([]*influxdb3.Point, 1, 1)
+	points := make([]*influxdb3.Point, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
 
@@ -120,7 +119,7 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 	}
 
 	point := influxdb3.NewPoint(table, nil, fields, time.Now())
-	points := make([]*influxdb3.Point, 1, 1)
+	points := make([]*influxdb3.Point, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
 }
