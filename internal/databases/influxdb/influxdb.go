@@ -84,6 +84,7 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 				"service": shared.SYSTEM_SERVICE_NAME
 			timestamp
 	*/
+
 }
 
 func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
@@ -100,7 +101,7 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 	*/
 	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
 
-	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
+	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
 	fields := map[string]any{
 		shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
 		shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
