@@ -112,16 +112,15 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 	points := make([]*influxdb3.Point, 1, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
-
 }
 
 // WriteWorker writes ProductInfo to InfluxDB
 // Note that the underlying library automatically batches writes
 // so we don't need to worry about that here.
 func (i *InfluxDB) WriteWorker(input <-chan shared.ProductInfo) {
-	// for info := range input {
-	// 	i.WriteProductDatapoint(info)
-	// }
+	for info := range input {
+		i.WriteProductDatapoint(info)
+	}
 }
 
 func (i *InfluxDB) Close() {
