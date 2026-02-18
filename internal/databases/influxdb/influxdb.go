@@ -124,7 +124,5 @@ func (i *InfluxDB) WriteWorker(input <-chan shared.ProductInfo) {
 }
 
 func (i *InfluxDB) Close() {
-	// i.groceryWriteAPI.Flush()
-	// i.systemWriteAPI.Flush()
-	// i.db.Close()
+	i.db.Close() // no error handling for this
 }
