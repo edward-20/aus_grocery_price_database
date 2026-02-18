@@ -8,6 +8,7 @@ import (
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/joho/godotenv"
+	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
@@ -51,7 +52,7 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 	*/
 	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
 
-	table := os.Getenv("INFLUXDB_DATABASE")
+	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
 	tags := map[string]string{
 		"id":         info.ID,
 		"name":       info.Name,
@@ -97,6 +98,21 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 				"cents_change"
 			timestamp
 	*/
+	godotenv.Load(".env.test") // how do i set a higher level environment variable to determine which environment variables to load in
+
+	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
+	fields := map[string]any{
+		shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
+		shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
+		shared.SYSTEM_HDD_BYTES_FREE_FIELD:          data.HDDBytesFree,
+		shared.SYSTEM_TOTAL_PRODUCT_COUNT_FIELD:     data.TotalProductCount,
+	}
+
+	point := influxdb3.NewPoint(table, nil, fields, time.Now())
+	points := make([]*influxdb3.Point, 1, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
+
 }
 
 // WriteWorker writes ProductInfo to InfluxDB
