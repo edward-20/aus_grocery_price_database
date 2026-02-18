@@ -13,6 +13,8 @@ type InfluxDB struct {
 	systemTable  string
 }
 
+// big question, do they all write to the same table?
+
 func (i *InfluxDB) Init(url, token, database string) error {
 	slog.Info("Initialising InfluxDB", "url", url, "database", database)
 	client, err := influxdb3.New(influxdb3.ClientConfig{
