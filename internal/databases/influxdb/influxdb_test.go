@@ -46,6 +46,10 @@ func compareProductInfo(a shared.ProductInfo, b map[string]any) bool {
 	// this may be incorrect because the key of the (tags and values) will not necessarily have the same name as the property of the struct
 	return a.ID == b["ID"] && a.Name == b["Name"] && a.Description == b["Description"] && a.Store == b["Store"] && a.Department == b["Department"] && a.Location == b["Location"] && a.PriceCents == b["PriceCents"] && a.WeightGrams == b["WeightGrams"] && a.Timestamp == b["time"]
 }
+
+func compareArbitrarySystemStatusDatapoint(field string, value interface{}, b map[string]any) bool {
+	return b[field] == value
+}
 func TestWriteProductDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
@@ -255,7 +259,15 @@ func TestWriteArbitrarySystemDatapoint(t *testing.T) {
 	for iterator.Next() {
 		// compare the values to what we wrote and ensure that only 3 exist
 		result := iterator.Value()
-		compareSystemStatusDatapoint(inputPoints[it], result)
+		switch it {
+		case 0:
+			compareArbitrarySystemStatusDatapoint("colour", "grey", result)
+		case 1:
+			compareArbitrarySystemStatusDatapoint("number", 42, result)
+		case 2:
+			compareArbitrarySystemStatusDatapoint("metres", 1.5, result)
+		}
+		compareArbitrarySystemStatusDatapoint("colour", "grey", result)
 		it++
 	}
 	if it != 3 {
