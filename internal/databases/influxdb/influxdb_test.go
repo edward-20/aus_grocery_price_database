@@ -45,27 +45,15 @@ func compareSystemStatusDatapoint(a shared.SystemStatusDatapoint, b map[string]a
 func compareProductInfo(a shared.ProductInfo, b map[string]any) bool {
 	// do type conversion
 	cents, ok := b["cents"].(int64)
-	var centsMatch bool = (ok && a.PriceCents != int(cents)) || (!ok && a.PriceCents == 0 && b["cents"] == nil)
+	var centsMatch bool = (ok && a.PriceCents == int(cents)) || (!ok && a.PriceCents == 0 && b["cents"] == nil)
 
 	grams, ok := b["grams"].(int64)
-	var gramsMatch bool = (ok && a.WeightGrams != int(grams)) || (!ok && a.WeightGrams == 0 && b["grams"] == nil)
+	var gramsMatch bool = (ok && a.WeightGrams == int(grams)) || (!ok && a.WeightGrams == 0 && b["grams"] == nil)
 
 	bTime, ok := b["time"].(time.Time)
-	if !ok {
-		// the value returned was not time convertible
-		if a.Timestamp.Equal(time.Time{}) && b["time"] == nil {
-			// ok
-		} else {
-			return false
-		}
-	} else {
-		// it is time convertible
-		if !a.Timestamp.Equal(bTime) {
-			return false
-		}
-	}
+	var timeMatch bool = (ok && a.Timestamp.Equal(bTime)) || (!ok && a.Timestamp.Equal(time.Time{}) && b["time"] == nil)
 
-	return (a.ID == b["id"]) || (a.ID == "" && b["id"] == nil) && (a.Name == b["name"]) || (a.Name == "" && b["name"] == nil) && (a.Store == b["store"]) || (a.Store == "" && b["store"] == nil) && (a.Department == b["department"]) || (a.Department == "" && b["department"] == nil) && (a.Location == b["location"]) || (a.Location == "" && b["location"] == nil)
+	return centsMatch && gramsMatch && timeMatch && ((a.ID == b["id"]) || (a.ID == "" && b["id"] == nil)) && ((a.Name == b["name"]) || (a.Name == "" && b["name"] == nil)) && ((a.Store == b["store"]) || (a.Store == "" && b["store"] == nil)) && ((a.Department == b["department"]) || (a.Department == "" && b["department"] == nil)) && ((a.Location == b["location"]) || (a.Location == "" && b["location"] == nil))
 
 }
 
