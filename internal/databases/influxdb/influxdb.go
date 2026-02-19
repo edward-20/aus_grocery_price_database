@@ -76,7 +76,7 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 		fields["cents_change"] = info.PriceCents - info.PreviousPriceCents
 	}
 
-	point := influxdb3.NewPoint(table, tags, fields, time.Now())
+	point := influxdb3.NewPoint(table, tags, fields, info.Timestamp)
 	points := make([]*influxdb3.Point, 1)
 	points[0] = point
 	i.db.WritePoints(context.Background(), points)
