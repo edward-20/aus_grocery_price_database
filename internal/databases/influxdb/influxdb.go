@@ -1,69 +1,134 @@
 package influxdb
 
 import (
+	"context"
 	"log/slog"
+	"os"
 	"time"
 
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	"github.com/influxdata/influxdb-client-go/v2/api"
+	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
+	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
 type InfluxDB struct {
-	db              influxdb2.Client
-	groceryWriteAPI api.WriteAPI
-	systemWriteAPI  api.WriteAPI
+	db           *influxdb3.Client
+	productTable string
+	systemTable  string
 }
 
-func (i *InfluxDB) Init(url, token, org, bucket string) {
-	slog.Info("Initialising InfluxDB", "url", url, "org", org, "bucket", bucket)
-	i.db = influxdb2.NewClient(url, token)
-	i.groceryWriteAPI = i.db.WriteAPI(org, bucket)
-	i.systemWriteAPI = i.db.WriteAPI(org, "system")
+func envLoading() {
+	env := os.Getenv("GO_ENV")
+	if "" == env {
+		env = "dev"
+	}
+
+	godotenv.Load(".env." + env)
+	godotenv.Load() // The Original .env
+}
+
+func (i *InfluxDB) Init(url, token, database string) error {
+	slog.Info("Initialising InfluxDB", "url", url, "database", database)
+	client, err := influxdb3.New(influxdb3.ClientConfig{
+		Host:     url,
+		Token:    token,
+		Database: database,
+	})
+	if err != nil {
+		// handle error
+		return err
+	}
+	i.db = client
+	return nil
 }
 
 func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
-	values := map[string]interface{}{"cents": info.PriceCents, "grams": info.WeightGrams}
+	/*
+		(shared.ProductInfo) -> in influxdb we will have:
+			fields:
+				"cents"
+				"grams"
+				"cents_change"
+			tags:
+				"id"
+				"name"
+				"store"
+				"location"
+				"department"
+			timestamp
+	*/
+	envLoading()
+	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
 
-	// If the price has meaningfully changed, report the change
-	if info.PriceCents != 0 && info.PreviousPriceCents != 0 && info.PriceCents != info.PreviousPriceCents {
-		values["cents_change"] = info.PriceCents - info.PreviousPriceCents
+	tags := map[string]string{
+		"id":         info.ID,
+		"name":       info.Name,
+		"store":      info.Store,
+		"location":   info.Location,
+		"department": info.Department,
 	}
-	p := influxdb2.NewPoint("product",
-		map[string]string{
-			"name":       info.Name,
-			"store":      info.Store,
-			"location":   info.Location,
-			"department": info.Department,
-			"id":         info.ID,
-		},
-		values,
-		info.Timestamp,
-	)
-	i.groceryWriteAPI.WritePoint(p)
+	fields := map[string]any{
+		"cents": info.PriceCents,
+		"grams": info.WeightGrams,
+	}
+
+	if info.PriceCents != info.PreviousPriceCents {
+		fields["cents_change"] = info.PriceCents - info.PreviousPriceCents
+	}
+
+	point := influxdb3.NewPoint(table, tags, fields, info.Timestamp)
+	points := make([]*influxdb3.Point, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
 }
 
 func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}) {
-	p := influxdb2.NewPoint("system",
-		map[string]string{"service": shared.SYSTEM_SERVICE_NAME},
-		map[string]interface{}{field: value},
-		time.Now(),
-	)
-	i.systemWriteAPI.WritePoint(p)
+	/*
+		(field, value) -> in influxdb we will have:
+			fields:
+				"field": value
+			tags:
+				"service": shared.SYSTEM_SERVICE_NAME
+			timestamp
+	*/
+	envLoading()
+	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+
+	fields := map[string]any{
+		field: value,
+	}
+	point := influxdb3.NewPoint(table, nil, fields, time.Now())
+	points := make([]*influxdb3.Point, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
 }
 
 func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
-	p := influxdb2.NewPoint("system",
-		map[string]string{},
-		map[string]interface{}{
-			shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
-			shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
-			shared.SYSTEM_HDD_BYTES_FREE_FIELD:          data.HDDBytesFree,
-			shared.SYSTEM_TOTAL_PRODUCT_COUNT_FIELD:     data.TotalProductCount,
-		},
-		time.Now(),
-	)
-	i.systemWriteAPI.WritePoint(p)
+	/*
+		(shared.SystemStatusDatapoint) -> in influxdb we will have:
+			fields:
+				shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
+				shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
+				shared.SYSTEM_HDD_BYTES_FREE_FIELD:          data.HDDBytesFree,
+				shared.SYSTEM_TOTAL_PRODUCT_COUNT_FIELD:     data.TotalProductCount,
+				"grams"
+				"cents_change"
+			timestamp
+	*/
+	envLoading()
+	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+
+	fields := map[string]any{
+		shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
+		shared.SYSTEM_PRODUCTS_PER_SECOND_FIELD:     data.ProductsPerSecond,
+		shared.SYSTEM_HDD_BYTES_FREE_FIELD:          data.HDDBytesFree,
+		shared.SYSTEM_TOTAL_PRODUCT_COUNT_FIELD:     data.TotalProductCount,
+	}
+
+	point := influxdb3.NewPoint(table, nil, fields, time.Now())
+	points := make([]*influxdb3.Point, 1)
+	points[0] = point
+	i.db.WritePoints(context.Background(), points)
 }
 
 // WriteWorker writes ProductInfo to InfluxDB
@@ -76,7 +141,5 @@ func (i *InfluxDB) WriteWorker(input <-chan shared.ProductInfo) {
 }
 
 func (i *InfluxDB) Close() {
-	i.groceryWriteAPI.Flush()
-	i.systemWriteAPI.Flush()
-	i.db.Close()
+	i.db.Close() // no error handling for this???
 }

@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
 	"github.com/tjhowse/aus_grocery_price_database/internal/coles"
 	"github.com/tjhowse/aus_grocery_price_database/internal/databases/influxdb"
 	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
@@ -20,8 +22,9 @@ const SYSTEM_STATUS_UPDATE_INTERVAL_SECONDS = 60
 type config struct {
 	InfluxDBURL                 string `env:"INFLUXDB_URL"`
 	InfluxDBToken               string `env:"INFLUXDB_TOKEN"`
-	InfluxDBOrg                 string `env:"INFLUXDB_ORG" envDefault:"groceries"`
-	InfluxDBBucket              string `env:"INFLUXDB_BUCKET" envDefault:"groceries"`
+	InfluxDBDatabase            string `env:"INFLUXDB_DATABASE" envDefault:"groceries"`
+	InfluxDBProductTable        string `env:"INFLUXDB_PRODUCT_TABLE" envDefault:"product"`
+	InfluxDBSystemTable         string `env:"INFLUXDB_SYSTEM_TABLE" envDefault:"system"`
 	InfluxUpdateIntervalSeconds int    `env:"INFLUXDB_UPDATE_RATE_SECONDS" envDefault:"10"`
 	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"woolworths.db3"`
 	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"coles.db3"`
@@ -40,7 +43,7 @@ type ProductInfoGetter interface {
 }
 
 type timeseriesDB interface {
-	Init(string, string, string, string)
+	Init(string, string, string) error
 	WriteProductDatapoint(shared.ProductInfo)
 	WriteArbitrarySystemDatapoint(string, interface{})
 	WriteSystemDatapoint(shared.SystemStatusDatapoint)
@@ -49,6 +52,12 @@ type timeseriesDB interface {
 }
 
 func main() {
+	// loading environment variables from '.env'
+	err := godotenv.Overload()
+	if err != nil {
+		log.Fatalf("unable to load .env file: %e", err)
+		return
+	}
 
 	// Read in the environment variables
 	cfg := config{}
@@ -68,7 +77,11 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBOrg, cfg.InfluxDBBucket)
+	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase)
+	if err != nil {
+		log.Fatalf("unable to initialise time series database: %e", err)
+		return
+	}
 	defer tsDB.Close()
 
 	w := woolworths.Woolworths{}

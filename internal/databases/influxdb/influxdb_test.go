@@ -1,55 +1,116 @@
+//go:build integration
+// +build integration
+
 package influxdb
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/influxdata/influxdb-client-go/v2/api"
-	"github.com/influxdata/influxdb-client-go/v2/api/write"
+	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
-type MockInfluxdbWriteAPI struct {
-	writtenPoints []*write.Point
+func dir(envFile string) string {
+	currentDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		goModPath := filepath.Join(currentDir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			break
+		}
+
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			panic(fmt.Errorf("go.mod not found"))
+		}
+		currentDir = parent
+	}
+
+	return filepath.Join(currentDir, envFile)
 }
 
-func (m *MockInfluxdbWriteAPI) WritePoint(p *write.Point) {
-	m.writtenPoints = append(m.writtenPoints, p)
+func compareSystemStatusDatapoint(a shared.SystemStatusDatapoint, b map[string]any) bool {
+	ram_utilisation_percentage, ok := b["ram_utilisation_percentage"].(float64)
+	var ram_utilisation_percentageMatch bool = (ok && a.RAMUtilisationPercent == float64(ram_utilisation_percentage)) || (!ok && a.RAMUtilisationPercent == 0 && b["ram_utilisation_percentage"] == nil)
+
+	products_per_second, ok := b["products_per_second"].(float64)
+	var products_per_secondMatch bool = (ok && a.ProductsPerSecond == float64(products_per_second) || (!ok && a.ProductsPerSecond == 0 && b["products_per_second"] == nil))
+
+	hdd_bytes_free, ok := b["hdd_bytes_free"].(int64)
+	var hdd_bytes_freeMatch bool = (ok && a.HDDBytesFree == int(hdd_bytes_free)) || (!ok && a.HDDBytesFree == 0 && b["hdd_bytes_free"] == nil)
+
+	total_product_count, ok := b["total_product_count"].(int64)
+	var total_product_countMatch bool = (ok && int(a.TotalProductCount) == int(total_product_count)) || (!ok && a.TotalProductCount == 0 && b["total_product_count"] == nil)
+
+	return ram_utilisation_percentageMatch && products_per_secondMatch && hdd_bytes_freeMatch && total_product_countMatch
+	// return (a.HDDBytesFree == b["hdd_bytes_free"]) && (a.ProductsPerSecond == b["products_per_second"]) && (a.RAMUtilisationPercent == b["ram_utilisation_percentage"]) && (a.TotalProductCount == b["total_product_count"])
 }
 
-func (m *MockInfluxdbWriteAPI) WriteRecord(line string) {}
+func compareProductInfo(a shared.ProductInfo, b map[string]any) bool {
+	cents, ok := b["cents"].(int64)
+	var centsMatch bool = (ok && a.PriceCents == int(cents)) || (!ok && a.PriceCents == 0 && b["cents"] == nil)
 
-func (m *MockInfluxdbWriteAPI) Flush() {}
+	grams, ok := b["grams"].(int64)
+	var gramsMatch bool = (ok && a.WeightGrams == int(grams)) || (!ok && a.WeightGrams == 0 && b["grams"] == nil)
 
-func (m *MockInfluxdbWriteAPI) Errors() <-chan error {
-	return make(chan error)
+	bTime, ok := b["time"].(time.Time)
+	var timeMatch bool = (ok && a.Timestamp.Equal(bTime)) || (!ok && a.Timestamp.Equal(time.Time{}) && b["time"] == nil)
+
+	return centsMatch && gramsMatch && timeMatch && ((a.ID == b["id"]) || (a.ID == "" && b["id"] == nil)) && ((a.Name == b["name"]) || (a.Name == "" && b["name"] == nil)) && ((a.Store == b["store"]) || (a.Store == "" && b["store"] == nil)) && ((a.Department == b["department"]) || (a.Department == "" && b["department"] == nil)) && ((a.Location == b["location"]) || (a.Location == "" && b["location"] == nil))
+
 }
 
-// func (m *MockInfluxdbWriteAPI) Init() {
-// 	m.writtenPoints = []*write.Point{}
-// }
+func compareArbitrarySystemStatusDatapoint(field string, value interface{}, b map[string]any) bool {
+	// depending on what the type of value is
+	// field is something measurable: integer, float, boolean, string
 
-func (m *MockInfluxdbWriteAPI) SetWriteFailedCallback(cb api.WriteFailedCallback) {}
-
-func InitMockInfluxDB() (*InfluxDB, *MockInfluxdbWriteAPI, *MockInfluxdbWriteAPI) {
-	i := InfluxDB{}
-	groceryMock := &MockInfluxdbWriteAPI{}
-	i.groceryWriteAPI = groceryMock
-	systemMock := &MockInfluxdbWriteAPI{}
-	i.systemWriteAPI = systemMock
-
-	return &i, groceryMock, systemMock
+	return (value == nil && b[field] == nil) || (value == b[field])
 }
 
 func TestWriteProductDatapoint(t *testing.T) {
+	i := InfluxDB{}
+	// read in .env.test
+	godotenv.Load(dir(".env.test"))
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	/*
+		install influxdb3 needs to be done manually
+		./influxdb3 serve
+			--node-id=node0 \
+			--cluster-id=cluster0 \
+			--object-store=file \
+			--data-dir=./data
+		install the cli manually
+		use the cli to healthcheck
+
+		init a database (perhaps needing to tear down an existing database from previous test run)
+	*/
+
+	if err != nil {
+		t.Errorf("Could not init database client: %s", err.Error())
+		t.FailNow()
+	}
 	desiredTags := map[string]string{
 		"name":       "Test Product",
 		"store":      "Test Store",
 		"location":   "Test Location",
 		"department": "Test Department",
 	}
-	i, gMock, _ := InitMockInfluxDB()
-	i.WriteProductDatapoint(shared.ProductInfo{
+
+	// get the current time
+	preWriteTime := time.Now().Format(time.RFC3339Nano)
+
+	// make the input product points
+	inputPoints := make([]shared.ProductInfo, 3)
+	inputPoints[0] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -58,8 +119,8 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 0,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
-	i.WriteProductDatapoint(shared.ProductInfo{
+	}
+	inputPoints[1] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -68,8 +129,8 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 100,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
-	i.WriteProductDatapoint(shared.ProductInfo{
+	}
+	inputPoints[2] = shared.ProductInfo{
 		Name:               desiredTags["name"],
 		Store:              desiredTags["store"],
 		Location:           desiredTags["location"],
@@ -78,77 +139,178 @@ func TestWriteProductDatapoint(t *testing.T) {
 		PreviousPriceCents: 101,
 		WeightGrams:        1000,
 		Timestamp:          time.Now(),
-	})
-
-	if want, got := 3, len(gMock.writtenPoints); want != got {
-		t.Errorf("want %d, got %d", want, got)
+	}
+	// write the input product points
+	for _, v := range inputPoints {
+		i.WriteProductDatapoint(v)
 	}
 
-	// Check the first written point.
-	p := gMock.writtenPoints[0]
-	if want, got := "product", p.Name(); want != got {
-		t.Errorf("want %s, got %s", want, got)
+	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
+	ctx := context.Background()
+	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP '%s' ORDER BY time;", influxDBProductTable, preWriteTime)
+	iterator, err := i.db.Query(ctx, query) // not using public interface of InfluxDB, this is not black box testing but in order to keep the interface of the package consistent it's acceptable
+	if err != nil {
+		t.Errorf("couldn't get query: %s", err.Error())
+		t.FailNow()
 	}
-
-	for _, tag := range p.TagList() {
-		if want, got := desiredTags[tag.Key], tag.Value; want != got {
-			t.Errorf("want %s, got %s", want, got)
+	var it int = 0
+	for iterator.Next() {
+		// compare the values to what we wrote and ensure that only 3 exist
+		result := iterator.Value()
+		if it > 2 {
+			t.Errorf("cardinality of query didn't match what was expected: %d", it)
+			t.FailNow()
 		}
+		if !compareProductInfo(inputPoints[it], result) {
+			t.Errorf("data points don't match what was expected")
+			t.FailNow()
+		}
+		it++
+	}
+	if it != 3 {
+		t.Errorf("cardinality didn't match what was expected: %d", it)
+		t.FailNow()
 	}
 
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			if want, got := int64(100), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "grams":
-			if want, got := int64(1000), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "cents_change":
-			t.Errorf("unexpected field %s", field.Key)
-		default:
-			t.Errorf("unexpected field %s", field.Key)
-		}
+}
+
+func TestWriteSystemDatapoint(t *testing.T) {
+	i := InfluxDB{}
+	// read in .env.test
+	godotenv.Load(dir(".env.test"))
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	/*
+		install influxdb3 needs to be done manually
+		./influxdb3 serve
+			--node-id=node0 \
+			--cluster-id=cluster0 \
+			--object-store=file \
+			--data-dir=./data
+		install the cli manually
+		use the cli to healthcheck
+
+		init a database (perhaps needing to tear down an existing database from previous test run)
+	*/
+
+	if err != nil {
+		t.Errorf("Could not init database client: %s", err.Error())
+		t.FailNow()
 	}
 
-	// Now check the second written point.
-	p = gMock.writtenPoints[1]
+	// get the current time
+	preWriteTime := time.Now().Format(time.RFC3339Nano)
 
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			if want, got := int64(101), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		case "grams":
-			continue
-		case "cents_change":
-			if want, got := int64(1), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		default:
-			t.Errorf("unexpected field %s", field.Key)
-		}
+	// make the input system status points
+	inputPoints := make([]shared.SystemStatusDatapoint, 3)
+	inputPoints[0] = shared.SystemStatusDatapoint{
+		RAMUtilisationPercent: 35.3,
+		ProductsPerSecond:     0.05,
+		HDDBytesFree:          12,
+		TotalProductCount:     12,
+	}
+	inputPoints[1] = shared.SystemStatusDatapoint{
+		RAMUtilisationPercent: 37.30,
+		ProductsPerSecond:     0.15,
+		HDDBytesFree:          10,
+		TotalProductCount:     8,
+	}
+	inputPoints[2] = shared.SystemStatusDatapoint{
+		RAMUtilisationPercent: 12.15,
+		ProductsPerSecond:     9.63,
+		HDDBytesFree:          10,
+		TotalProductCount:     8,
+	}
+	// write the input product points
+	for _, v := range inputPoints {
+		i.WriteSystemDatapoint(v)
 	}
 
-	// Now check the third written point.
-	p = gMock.writtenPoints[2]
-
-	for _, field := range p.FieldList() {
-		switch field.Key {
-		case "cents":
-			continue
-		case "grams":
-			continue
-		case "cents_change":
-			if want, got := int64(-2), field.Value.(int64); want != got {
-				t.Errorf("want %v, got %v", want, got)
-			}
-		default:
-			t.Errorf("unexpected field %s", field.Key)
+	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
+	ctx := context.Background()
+	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP '%s' ORDER BY time;", influxDBSystemTable, preWriteTime)
+	iterator, err := i.db.Query(ctx, query) // not using public interface of InfluxDB, this is not black box testing but in order to keep the interface of the package consistent it's acceptable
+	if err != nil {
+		t.Errorf("couldn't get query: %s", err.Error())
+		t.FailNow()
+	}
+	var it int = 0
+	for iterator.Next() {
+		// compare the values to what we wrote and ensure that only 3 exist
+		result := iterator.Value()
+		if it > 2 {
+			t.Errorf("cardinality of query didn't match what was expected: %d", it)
+			t.FailNow()
 		}
+		if !compareSystemStatusDatapoint(inputPoints[it], result) {
+			t.Errorf("data points don't match what was expected")
+			t.FailNow()
+		}
+		it++
+	}
+	if it != 3 {
+		t.FailNow()
+	}
+
+}
+
+func TestWriteArbitrarySystemDatapoint(t *testing.T) {
+	i := InfluxDB{}
+	// read in .env.test
+	godotenv.Load(dir(".env.test"))
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	/*
+		install influxdb3 needs to be done manually
+		./influxdb3 serve
+			--node-id=node0 \
+			--cluster-id=cluster0 \
+			--object-store=file \
+			--data-dir=./data
+		install the cli manually
+		use the cli to healthcheck
+
+		init a database (perhaps needing to tear down an existing database from previous test run)
+	*/
+
+	if err != nil {
+		t.Errorf("Could not init database client: %s", err.Error())
+		t.FailNow()
+	}
+
+	// get the current time
+	preWriteTime := time.Now().Format(time.RFC3339Nano)
+
+	// write the arbitrary system points
+	i.WriteArbitrarySystemDatapoint("colour", "grey")
+	i.WriteArbitrarySystemDatapoint("number", 42)
+	i.WriteArbitrarySystemDatapoint("metres", 1.5)
+
+	// sanity testing: check that only the measurements we wrote exist after preWriteTime (cardinality)
+	ctx := context.Background()
+	// idk how this is even queried, this links to the original question, are they all being written to the same table
+	query := fmt.Sprintf("SELECT * FROM %s WHERE time >= TIMESTAMP '%s' ORDER BY time;", influxDBSystemTable, preWriteTime)
+	iterator, err := i.db.Query(ctx, query) // not using public interface of InfluxDB, this is not black box testing but in order to keep the interface of the package consistent it's acceptable
+	if err != nil {
+		t.Errorf("couldn't get query: %s", err.Error())
+		t.FailNow()
+	}
+	var it int = 0
+	for iterator.Next() {
+		// compare the values to what we wrote and ensure that only 3 exist
+		result := iterator.Value()
+		switch it {
+		case 0:
+			compareArbitrarySystemStatusDatapoint("colour", "grey", result)
+		case 1:
+			compareArbitrarySystemStatusDatapoint("number", 42, result)
+		case 2:
+			compareArbitrarySystemStatusDatapoint("metres", 1.5, result)
+		}
+		it++
+	}
+	if it != 3 {
+		t.FailNow()
 	}
 
 }
