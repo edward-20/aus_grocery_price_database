@@ -79,8 +79,8 @@ func TestWriteProductDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
 	godotenv.Load(dir(".env.test"))
-	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE")
-	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable) // have to make an influxdb3 instance for testing
 	/*
 		install influxdb3 needs to be done manually
 		./influxdb3 serve
@@ -178,8 +178,8 @@ func TestWriteSystemDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
 	godotenv.Load(dir(".env.test"))
-	influxDBUrl, influxDBToken, influxDBDatabase, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
-	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable) // have to make an influxdb3 instance for testing
 	/*
 		install influxdb3 needs to be done manually
 		./influxdb3 serve
@@ -258,8 +258,8 @@ func TestWriteArbitrarySystemDatapoint(t *testing.T) {
 	i := InfluxDB{}
 	// read in .env.test
 	godotenv.Load(dir(".env.test"))
-	influxDBUrl, influxDBToken, influxDBDatabase, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
-	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase) // have to make an influxdb3 instance for testing
+	influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable := os.Getenv("INFLUXDB_URL"), os.Getenv("INFLUXDB_TOKEN"), os.Getenv("INFLUXDB_DATABASE"), os.Getenv("INFLUXDB_PRODUCT_TABLE"), os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	err := i.Init(influxDBUrl, influxDBToken, influxDBDatabase, influxDBProductTable, influxDBSystemTable) // have to make an influxdb3 instance for testing
 	/*
 		install influxdb3 needs to be done manually
 		./influxdb3 serve
