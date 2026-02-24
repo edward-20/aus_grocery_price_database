@@ -52,8 +52,18 @@ type timeseriesDB interface {
 }
 
 func main() {
-	// loading environment variables from '.env'
-	err := godotenv.Overload()
+	// loading environment variables from '.env.<env>' then '.env'
+	goEnv := os.Getenv("GO_ENV")
+	if "" == goEnv {
+		goEnv = "dev"
+	}
+
+	err := godotenv.Load(".env." + goEnv)
+	if err != nil {
+		log.Fatalf("unable to load .env.<env> file: %e", err)
+		return
+	}
+	err = godotenv.Load() // The Original .env
 	if err != nil {
 		log.Fatalf("unable to load .env file: %e", err)
 		return
