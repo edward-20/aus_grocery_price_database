@@ -43,7 +43,7 @@ type ProductInfoGetter interface {
 }
 
 type timeseriesDB interface {
-	Init(string, string, string) error
+	Init(url, token, database, productTable, systemTable string) error
 	WriteProductDatapoint(shared.ProductInfo)
 	WriteArbitrarySystemDatapoint(string, interface{})
 	WriteSystemDatapoint(shared.SystemStatusDatapoint)
@@ -77,7 +77,7 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase)
+	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
 	if err != nil {
 		log.Fatalf("unable to initialise time series database: %e", err)
 		return
