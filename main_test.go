@@ -10,9 +10,9 @@ import (
 )
 
 type MockInfluxDB struct {
-	url, token, database             string
-	writtenProductDataPoints         []shared.ProductInfo
-	writtenArbitrarySystemDatapoints []struct {
+	url, token, database, productTable, systemTable string
+	writtenProductDataPoints                        []shared.ProductInfo
+	writtenArbitrarySystemDatapoints                []struct {
 		field string
 		value interface{}
 	}
@@ -20,10 +20,12 @@ type MockInfluxDB struct {
 	closed                  bool
 }
 
-func (i *MockInfluxDB) Init(url, token, database string) error {
+func (i *MockInfluxDB) Init(url, token, database, productTable, systemTable string) error {
 	i.url = url
 	i.token = token
 	i.database = database
+	i.productTable = productTable
+	i.systemTable = systemTable
 	i.closed = false
 	return nil
 }
@@ -126,7 +128,7 @@ func TestRun(t *testing.T) {
 	}
 	mockGroceryStore.Init("", "", 1*time.Minute)
 	mockGroceryStore2.Init("", "", 1*time.Minute)
-	mockInfluxDB.Init("", "", "")
+	mockInfluxDB.Init("", "", "", "product", "system")
 
 	running := true
 
