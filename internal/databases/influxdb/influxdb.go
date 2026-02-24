@@ -3,11 +3,9 @@ package influxdb
 import (
 	"context"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
-	"github.com/joho/godotenv"
 	shared "github.com/tjhowse/aus_grocery_price_database/internal/shared"
 )
 
@@ -15,16 +13,6 @@ type InfluxDB struct {
 	db           *influxdb3.Client
 	productTable string
 	systemTable  string
-}
-
-func envLoading() {
-	env := os.Getenv("GO_ENV")
-	if "" == env {
-		env = "dev"
-	}
-
-	godotenv.Load(".env." + env)
-	godotenv.Load() // The Original .env
 }
 
 func (i *InfluxDB) Init(url, token, database, productTable, systemTable string) error {
@@ -39,6 +27,8 @@ func (i *InfluxDB) Init(url, token, database, productTable, systemTable string) 
 		return err
 	}
 	i.db = client
+	i.productTable = productTable
+	i.systemTable = systemTable
 	return nil
 }
 
@@ -57,8 +47,7 @@ func (i *InfluxDB) WriteProductDatapoint(info shared.ProductInfo) {
 				"department"
 			timestamp
 	*/
-	envLoading()
-	table := os.Getenv("INFLUXDB_PRODUCT_TABLE")
+	table := i.productTable
 
 	tags := map[string]string{
 		"id":         info.ID,
@@ -91,8 +80,7 @@ func (i *InfluxDB) WriteArbitrarySystemDatapoint(field string, value interface{}
 				"service": shared.SYSTEM_SERVICE_NAME
 			timestamp
 	*/
-	envLoading()
-	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	table := i.systemTable
 
 	fields := map[string]any{
 		field: value,
@@ -115,8 +103,7 @@ func (i *InfluxDB) WriteSystemDatapoint(data shared.SystemStatusDatapoint) {
 				"cents_change"
 			timestamp
 	*/
-	envLoading()
-	table := os.Getenv("INFLUXDB_SYSTEM_TABLE")
+	table := i.systemTable
 
 	fields := map[string]any{
 		shared.SYSTEM_RAM_UTILISATION_PERCENT_FIELD: data.RAMUtilisationPercent,
