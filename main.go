@@ -43,7 +43,7 @@ type ProductInfoGetter interface {
 }
 
 type timeseriesDB interface {
-	Init(string, string, string) error
+	Init(url, token, database, productTable, systemTable string) error
 	WriteProductDatapoint(shared.ProductInfo)
 	WriteArbitrarySystemDatapoint(string, interface{})
 	WriteSystemDatapoint(shared.SystemStatusDatapoint)

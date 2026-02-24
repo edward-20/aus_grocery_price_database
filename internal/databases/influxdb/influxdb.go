@@ -27,7 +27,7 @@ func envLoading() {
 	godotenv.Load() // The Original .env
 }
 
-func (i *InfluxDB) Init(url, token, database string) error {
+func (i *InfluxDB) Init(url, token, database, productTable, systemTable string) error {
 	slog.Info("Initialising InfluxDB", "url", url, "database", database)
 	client, err := influxdb3.New(influxdb3.ClientConfig{
 		Host:     url,
