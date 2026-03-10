@@ -26,8 +26,8 @@ type config struct {
 	InfluxDBProductTable        string `env:"INFLUXDB_PRODUCT_TABLE" envDefault:"product"`
 	InfluxDBSystemTable         string `env:"INFLUXDB_SYSTEM_TABLE" envDefault:"system"`
 	InfluxUpdateIntervalSeconds int    `env:"INFLUXDB_UPDATE_RATE_SECONDS" envDefault:"10"`
-	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"woolworths.db3"`
-	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"coles.db3"`
+	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"/data/woolworths.db3"`
+	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"/data/coles.db3"`
 	MaxProductAgeMinutes        int    `env:"MAX_PRODUCT_AGE_MINUTES" envDefault:"1440"`
 	WoolworthsURL               string `env:"WOOLWORTHS_URL" envDefault:"https://www.woolworths.com.au"`
 	ColesURL                    string `env:"COLES_URL" envDefault:"https://www.coles.com.au"`
