@@ -89,7 +89,7 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
+	err := tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
 	if err != nil {
 		log.Fatalf("unable to initialise time series database: %e", err)
 		return
