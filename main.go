@@ -58,15 +58,17 @@ func main() {
 		goEnv = "dev"
 	}
 
-	err := godotenv.Load(".env." + goEnv)
-	if err != nil {
-		log.Fatalf("unable to load .env.<env> file: %e", err)
-		return
-	}
-	err = godotenv.Load() // The Original .env
-	if err != nil {
-		log.Fatalf("unable to load .env file: %e", err)
-		return
+	if goEnv != "railway" {
+		err := godotenv.Load(".env." + goEnv)
+		if err != nil {
+			log.Fatalf("unable to load .env.<env> file: %e", err)
+			return
+		}
+		err = godotenv.Load() // The Original .env
+		if err != nil {
+			log.Fatalf("unable to load .env file: %e", err)
+			return
+		}
 	}
 
 	// Read in the environment variables
