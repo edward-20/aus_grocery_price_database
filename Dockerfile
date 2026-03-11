@@ -11,5 +11,6 @@ FROM debian:bookworm
 
 COPY --from=builder /run-app /usr/local/bin/
 RUN apt update && apt install -y ca-certificates sqlite3 && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /data && chmod 777 /data
 VOLUME [ "/data" ] 
 CMD ["run-app"]
