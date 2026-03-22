@@ -16,7 +16,7 @@ import (
 	"github.com/tjhowse/aus_grocery_price_database/internal/woolworths"
 )
 
-const VERSION = "0.0.54"
+const VERSION = "0.0.55"
 const SYSTEM_STATUS_UPDATE_INTERVAL_SECONDS = 60
 
 type config struct {
@@ -57,16 +57,12 @@ func main() {
 	if "" == goEnv {
 		goEnv = "dev"
 	}
-
-	if goEnv != "railway" {
-		err := godotenv.Load(".env." + goEnv)
-		if err != nil {
-			log.Fatalf("unable to load .env.<env> file: %e", err)
-			return
-		}
+	err := godotenv.Load(".env." + goEnv)
+	if err != nil {
+		log.Fatalf("unable to load .env.<env> file: %e", err)
 		err = godotenv.Load() // The Original .env
 		if err != nil {
-			log.Fatalf("unable to load .env file: %e", err)
+			log.Fatalf("and unable to load .env file: %e", err)
 			return
 		}
 	}
@@ -89,7 +85,7 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	err := tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
+	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
 	if err != nil {
 		log.Fatalf("unable to initialise time series database: %e", err)
 		return
