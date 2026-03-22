@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
-	"github.com/joho/godotenv"
 	"github.com/tjhowse/aus_grocery_price_database/internal/coles"
 	"github.com/tjhowse/aus_grocery_price_database/internal/databases/influxdb"
 	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
@@ -52,21 +51,6 @@ type timeseriesDB interface {
 }
 
 func main() {
-	// loading environment variables from '.env.<env>' then '.env'
-	goEnv := os.Getenv("GO_ENV")
-	if "" == goEnv {
-		goEnv = "dev"
-	}
-	err := godotenv.Load(".env." + goEnv)
-	if err != nil {
-		log.Fatalf("unable to load .env.<env> file: %e", err)
-		err = godotenv.Load() // The Original .env
-		if err != nil {
-			log.Fatalf("and unable to load .env file: %e", err)
-			return
-		}
-	}
-
 	// Read in the environment variables
 	cfg := config{}
 	if err := env.Parse(&cfg); err != nil {
