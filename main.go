@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v11"
-	"github.com/joho/godotenv"
 	"github.com/tjhowse/aus_grocery_price_database/internal/coles"
 	"github.com/tjhowse/aus_grocery_price_database/internal/databases/influxdb"
 	"github.com/tjhowse/aus_grocery_price_database/internal/shared"
 	"github.com/tjhowse/aus_grocery_price_database/internal/woolworths"
 )
 
-const VERSION = "0.0.54"
+const VERSION = "0.0.55"
 const SYSTEM_STATUS_UPDATE_INTERVAL_SECONDS = 60
 
 type config struct {
@@ -26,8 +25,8 @@ type config struct {
 	InfluxDBProductTable        string `env:"INFLUXDB_PRODUCT_TABLE" envDefault:"product"`
 	InfluxDBSystemTable         string `env:"INFLUXDB_SYSTEM_TABLE" envDefault:"system"`
 	InfluxUpdateIntervalSeconds int    `env:"INFLUXDB_UPDATE_RATE_SECONDS" envDefault:"10"`
-	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"woolworths.db3"`
-	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"coles.db3"`
+	LocalWoolworthsDBPath       string `env:"LOCAL_WOOLWORTHS_DB_PATH" envDefault:"/data/woolworths.db3"`
+	LocalColesDBPath            string `env:"LOCAL_COLES_DB_PATH" envDefault:"/data/coles.db3"`
 	MaxProductAgeMinutes        int    `env:"MAX_PRODUCT_AGE_MINUTES" envDefault:"1440"`
 	WoolworthsURL               string `env:"WOOLWORTHS_URL" envDefault:"https://www.woolworths.com.au"`
 	ColesURL                    string `env:"COLES_URL" envDefault:"https://www.coles.com.au"`
@@ -52,23 +51,6 @@ type timeseriesDB interface {
 }
 
 func main() {
-	// loading environment variables from '.env.<env>' then '.env'
-	goEnv := os.Getenv("GO_ENV")
-	if "" == goEnv {
-		goEnv = "dev"
-	}
-
-	err := godotenv.Load(".env." + goEnv)
-	if err != nil {
-		log.Fatalf("unable to load .env.<env> file: %e", err)
-		return
-	}
-	err = godotenv.Load() // The Original .env
-	if err != nil {
-		log.Fatalf("unable to load .env file: %e", err)
-		return
-	}
-
 	// Read in the environment variables
 	cfg := config{}
 	if err := env.Parse(&cfg); err != nil {
@@ -87,7 +69,7 @@ func main() {
 	slog.Info("AUS Grocery Price Database", "version", VERSION)
 
 	tsDB := influxdb.InfluxDB{}
-	err = tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
+	err := tsDB.Init(cfg.InfluxDBURL, cfg.InfluxDBToken, cfg.InfluxDBDatabase, cfg.InfluxDBProductTable, cfg.InfluxDBSystemTable)
 	if err != nil {
 		log.Fatalf("unable to initialise time series database: %e", err)
 		return
